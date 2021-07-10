@@ -28,7 +28,7 @@ env:
 
 jobs:
   ardour-x-win-build:
-    name: Ardour Cross Compile Build for Windows ${{ matrix.config.arch }}
+    name: Ardour X-Build for Win ${{ matrix.config.arch }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -36,12 +36,19 @@ jobs:
         config:
           - {
               arch: x86_64,
-              warch: w64
+              warch: w64,
+              image_repo: vitzy/ardour-x-win,
+              image_tag: 20210710
             }
           - {
               arch: i686,
-              warch: w32
+              warch: w32,
+              image_repo: vitzy/ardour-x-win,
+              image_tag: 20210710
             }
+    container:
+      image: ${{ matrix.config.image_repo }}:${{ matrix.config.image_tag }}
+      options: -v ${{ github.workspace }}:/home/ardour:rw
     steps:
 
       # - name: Checkout Build Tools
@@ -77,22 +84,37 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/tmp/winsrc
 
-      - name: Compile and Package
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ${{ env.DOCKER_IMAGE }}
-          options: >
-            -v ${{ github.workspace }}:/home/ardour:rw 
-            -e XARCH=${{ matrix.config.arch }} 
-            -e ROOT=/home/ardour 
-            -e TMPDIR=/home/ardour/tmp 
-            -e SRCCACHE=/home/ardour/tmp/winsrc
-          shell: bash
-          run: |
-            echo "Compile"
-            bash /home/ardour/ci/compile.sh
-            echo "Package"
-            bash /home/ardour/src/tools/x-win/package.sh
+      # - name: Compile and Package
+      #   uses: docker://${{ env.DOCKER_IMAGE }}
+      #   env:
+      #     MIX_ENV: test
+      #   with:
+      #     entrypoint: /bin/sh
+      #     args: |
+      #       -c "\
+      #       mix do local.hex --force, local.rebar --force, deps.get && \
+      #       mix compile --warnings-as-errors && \
+      #       mix format --check-formatted && \
+      #       mix test --cover && \
+      #       mix docs"
+
+      - name: Compile
+        shell: bash
+        run: |
+          bash /home/ardour/ci/compile.sh
+        env:
+          XARCH: ${{ matrix.config.arch }}
+          ROOT: /home/ardour
+
+      - name: Package
+        shell: bash
+        run: |
+          bash /home/ardour/src/tools/x-win/package.sh
+        env:
+          XARCH: ${{ matrix.config.arch }}
+          ROOT: /home/ardour
+          TMPDIR: /home/ardour/tmp
+          SRCCACHE: /home/ardour/tmp/winsrc
 
       - name: Upload Binary
         # /home/ardour/tmp/Ardour-6.8.0-dbg-w64-Setup.exe
