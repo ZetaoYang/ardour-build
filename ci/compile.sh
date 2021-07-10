@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-set -x
+# set -x
 
 # we assuem this script is <ardour-src>/tools/x-win/compile.sh
-# <ardour-build-src>/ci/compile.sh
+# now assum this script is <ardour-build-src>/ci/compile.sh
 pushd "`/usr/bin/dirname \"$0\"`" > /dev/null; this_script_dir="`pwd`"; popd > /dev/null
 # cd "$this_script_dir/../.."
 cd "$this_script_dir/../src"
+
 test -f gtk2_ardour/wscript || exit 1
 
 : ${XARCH=i686} # or x86_64
@@ -26,11 +27,14 @@ fi
 
 : ${PREFIX=${ROOT}/win-stack-$WARCH}
 
+# for debug build: remove --optimize
+# ptformat reads and parses ProTools https://www.avid.com/pro-tools session files.
+# for free/demo version: add --freebie
 if test -z "${ARDOURCFG}"; then
 	if test -f ${PREFIX}/include/pa_asio.h; then
-		ARDOURCFG="--windows-vst --with-backends=jack,portaudio,dummy"
+		ARDOURCFG="--windows-vst --ptformat --with-backends=jack,portaudio,dummy --optimize"
 	else
-		ARDOURCFG="--windows-vst --with-backends=jack,dummy"
+		ARDOURCFG="--windows-vst --ptformat --with-backends=jack,dummy --optimize"
 	fi
 fi
 

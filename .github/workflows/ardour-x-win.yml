@@ -1,0 +1,109 @@
+name: Ardour Cross Compile Build for Windows
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  repository_dispatch:
+    types: ardour-x-win-build
+
+env:
+  ARDOUR_VERSION: 6.8
+  # ARDOUR_SHA256_SUMS: bb5b48b7204c7dbfdc3b690a50e07cd651e82e0e6f8c2aefeb3d4b4289f4002d
+  ARCH: x86_64
+  WARCH: w64
+  # available upload services: wetransfer.com, file.io, 0x0.st
+  UPLOAD_SERVICE: wetransfer.com
+  # created a windows32/64bit build-stack for Ardour 
+  # cross-compiled on GNU/Linux using gcc-8.2 (debian buster), see branch x-win-dockerfile
+  # XARCH: ${{ matrix.config.arch }}
+  # SRCDIR: /home/ardour/tmp/winsrc
+  # TMPDIR: /home/ardour/tmp
+  # ROOT: /home/ardour
+  DOCKER_IMAGE: vitzy/ardour-x-win:20210710
+  # ardour spurce code tar ball, need check its sha256sums.
+  # https://community.ardour.org/srctar
+  # https://fossies.org/linux/misc/Ardour-6.8.0.tar.bz2
+
+jobs:
+  ardour-x-win-build:
+    name: Ardour Cross Compile Build for Windows ${{ matrix.config.arch }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              arch: x86_64,
+              warch: w64
+            }
+          - {
+              arch: i686,
+              warch: w32
+            }
+    steps:
+
+      # - name: Checkout Build Tools
+      #   shell: bash
+      #   run: |
+      #     cd ${{ github.workspace }}
+      #     git clone --branch master https://github.com/ZetaoYang/ardour-build.git .
+
+      - name: Checkout Build Tools
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository }}
+          fetch-depth: 0
+          ref: master
+          path: '.'
+
+      # - name: Get Ardour Latest Release Source Code
+      #   shell: bash
+      #   run: |
+      #     ls -l ${{ github.workspace }}
+      #     git clone --depth 1 --branch ${{ env.ARDOUR_VERSION }} https://github.com/Ardour/ardour.git ${{ github.workspace }}/src
+
+      - name: Get Ardour Latest Release Source Code
+        uses: actions/checkout@v2
+        with:
+          repository: 'Ardour/ardour'
+          fetch-depth: 1
+          ref: ${{ env.ARDOUR_VERSION }}
+          path: './src'
+
+      - name: Prepare Directory
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/tmp/winsrc
+
+      - name: Compile and Package
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ env.DOCKER_IMAGE }}
+          options: >
+            -v ${{ github.workspace }}:/home/ardour:rw 
+            -e XARCH=${{ matrix.config.arch }} 
+            -e ROOT=/home/ardour 
+            -e TMPDIR=/home/ardour/tmp 
+            -e SRCCACHE=/home/ardour/tmp/winsrc
+          shell: bash
+          run: |
+            echo "Compile"
+            bash /home/ardour/ci/compile.sh
+            echo "Package"
+            bash /home/ardour/src/tools/x-win/package.sh
+
+      - name: Upload Binary
+        # /home/ardour/tmp/Ardour-6.8.0-dbg-w64-Setup.exe
+        shell: bash
+        run: |
+            TEMP_DOWNLOAD_URL=$(sh ${{ github.workspace }}/ci/services/${{ env.UPLOAD_SERVICE }}.sh ${{ github.workspace }}/tmp/Ardour-*-${{ matrix.config.xarch }}-Setup.exe)
+            echo Download URL is $TEMP_DOWNLOAD_URL. 
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Ardour-Cross-Compile-Win-Artifact
+          path: |
+            ${{ github.workspace }}/tmp/Ardour-*-${{ matrix.config.xarch }}-Setup.exe
