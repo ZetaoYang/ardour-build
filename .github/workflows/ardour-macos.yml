@@ -42,10 +42,12 @@ jobs:
 
       #     mv -v cacert.pem /usr/local/etc/openssl@1.1/certs
 
-      # - name: Set Env
-      #   shell: bash
-      #   run: |
-      #     echo "CURL_CA_BUNDLE=/usr/local/etc/openssl/certs" >> $GITHUB_ENV
+      - name: Install XML::Parser perl module
+        shell: bash
+        run: |
+          perl -MCPAN -e shell
+          cpan install Alien::Base::Wrapper
+          cpan install XML::LibXML
 
       - name: Checkout Build Tools
         uses: actions/checkout@v2

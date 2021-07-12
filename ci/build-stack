@@ -818,17 +818,17 @@ if [ x$explicit_intl != x ] ; then
     basic_builder libiconv
     if [ "$OSX_TARGET" == "i386" ]; then
         (
-        GLOBAL_CONF="$GLOBAL_CONF --with-included-gettext --with-libiconv-prefix=$PREFIX --enable-shared --host=i386 --build=i386" \
+        GLOBAL_CONF="$GLOBAL_CONF --with-included-gettext --with-libiconv-prefix=$PREFIX --enable-shared --host=i386 --build=i386 --disable-curses --disable-java --disable-csharp --disable-openmp --without-bzip2 --without-xz" \
         basic_builder gettext
         ) || die
     elif [ "$OSX_TARGET" == "ppc" ]; then
         (
-        GLOBAL_CONF="$GLOBAL_CONF --with-included-gettext --with-libiconv-prefix=$PREFIX --enable-shared --host=ppc --build=ppc" \
+        GLOBAL_CONF="$GLOBAL_CONF --with-included-gettext --with-libiconv-prefix=$PREFIX --enable-shared --host=ppc --build=ppc --disable-curses --disable-java --disable-csharp --disable-openmp --without-bzip2 --without-xz" \
         basic_builder gettext
         ) || die
     else
         (
-        GLOBAL_CONF="$GLOBAL_CONF --with-included-gettext --with-libiconv-prefix=$PREFIX --enable-shared" \
+        GLOBAL_CONF="$GLOBAL_CONF --with-included-gettext --with-libiconv-prefix=$PREFIX --enable-shared --disable-curses --disable-java --disable-csharp --disable-openmp --without-bzip2 --without-xz" \
         basic_builder gettext
         ) || die
     fi
